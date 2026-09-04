@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meme Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600;700&family=Poppins:wght@700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #eef4f1;
+  --bg: #0f201c;
+  --panel: #16302a;
+  --panel-border: #23473d;
+  --coral: #ff6b5d;
+  --yellow: #ffd166;
+  --muted: #9db7ae;
+  --radius: 12px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Inter', sans-serif;
+}
+
+.App {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.topbar {
+  width: 100%;
+  padding: 20px 0 4px;
+  text-align: center;
+}
+
+.logo {
+  font-family: 'Anton', sans-serif;
+  letter-spacing: 0.5px;
+  font-size: 30px;
+  margin: 0;
+  color: var(--yellow);
+}
+
+/* ---------- editor: single centered column, imgflip-style ---------- */
+
+.editor {
+  width: 100%;
+  max-width: 560px;
+  padding: 16px 16px 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.template-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.upload-chip {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 68px;
+  height: 68px;
+  border-radius: 10px;
+  background: var(--panel);
+  border: 1.5px dashed var(--panel-border);
+  color: var(--muted);
+  font-size: 10px;
+  text-align: center;
+  padding: 4px;
+  cursor: pointer;
+}
+
+.template-thumb {
+  flex: 0 0 auto;
+  width: 68px;
+  height: 68px;
+  border-radius: 10px;
+  background-size: cover;
+  background-position: center;
+  border: 2px solid transparent;
+  cursor: pointer;
+}
+
+.template-thumb.active {
+  border-color: var(--yellow);
+}
+
+/* ---------- stage ---------- */
+
+.stage {
+  position: relative;
+  width: 100%;
+  background: #000;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--panel-border);
+  touch-action: none;
+  align-self: center;
+}
+
+.stage-bg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+}
+
+.stage-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 14px;
+  text-align: center;
+  padding: 20px;
+}
+
+.stage-layer {
+  position: absolute;
+  cursor: grab;
+  white-space: pre-wrap;
+  user-select: none;
+  line-height: 1.05;
+  max-width: 92%;
+  text-transform: uppercase;
+  font-weight: 400;
+}
+
+.stage-layer.selected {
+  outline: 2px dashed var(--yellow);
+  outline-offset: 6px;
+}
+
+.stage-layer:active {
+  cursor: grabbing;
+}
+
+/* ---------- text box accordion list ---------- */
+
+.textbox-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.textbox-row {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.textbox-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: none;
+  border: none;
+  color: var(--ink);
+  padding: 12px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.textbox-header span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 440px;
+}
+
+.chevron {
+  color: var(--muted);
+  font-size: 10px;
+  margin-left: 8px;
+}
+
+.textbox-body {
+  padding: 0 14px 14px;
+  border-top: 1px solid var(--panel-border);
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 14px;
+}
+
+/* ---------- buttons & fields ---------- */
+
+.btn {
+  border: none;
+  border-radius: 999px;
+  padding: 10px 18px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background: var(--coral);
+  color: #201007;
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--ink);
+  border: 1.5px solid var(--panel-border);
+}
+
+.btn-danger {
+  background: transparent;
+  color: var(--coral);
+  border: 1.5px solid var(--coral);
+  width: 100%;
+  margin-top: 4px;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.btn-generate {
+  align-self: center;
+  padding: 14px 40px;
+  font-size: 16px;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+label {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  margin: 12px 0 0;
+}
+
+input[type='range'] {
+  width: 100%;
+}
+
+textarea,
+select {
+  width: 100%;
+  margin-top: 6px;
+  background: #0f201c;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  color: var(--ink);
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 14px;
+  resize: vertical;
+}
+
+input[type='color'] {
+  width: 100%;
+  margin-top: 6px;
+  height: 32px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: none;
+  padding: 2px;
+}
+
+.color-row {
+  display: flex;
+  gap: 12px;
+}
+
+.color-row label {
+  flex: 1;
+}
+
+.segmented {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.segmented button {
+  flex: 1;
+  background: #0f201c;
+  border: 1px solid var(--panel-border);
+  color: var(--muted);
+  border-radius: 8px;
+  padding: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  text-transform: capitalize;
+}
+
+.segmented button.active {
+  background: var(--coral);
+  color: #201007;
+  border-color: var(--coral);
+}
+
+/* ---------- result step ---------- */
+
+.result {
+  width: 100%;
+  max-width: 560px;
+  padding: 24px 16px 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+.result-image {
+  width: 100%;
+  border-radius: var(--radius);
+  border: 1px solid var(--panel-border);
+}
+
+.result-actions {
+  display: flex;
+  gap: 10px;
+}
+
+</style>
+</head>
+<body>
+<div class="App">
+  <header class="topbar">
+    <h1 class="logo">Meme Generator</h1>
+  </header>
+
+  <div id="editor" class="editor">
+    <section id="templateStrip" class="template-strip"></section>
+
+    <div id="stage" class="stage">
+      <div id="placeholder" class="stage-placeholder">Choose a template above to start</div>
+      <img id="stageBg" class="stage-bg" alt="Meme background" draggable="false" hidden>
+    </div>
+
+    <section id="textboxList" class="textbox-list"></section>
+
+    <button id="generateBtn" class="btn btn-primary btn-generate" type="button">
+      Generate Meme
+    </button>
+  </div>
+
+  <div id="result" class="result" hidden>
+    <img id="resultImage" class="result-image" alt="Generated meme">
+    <div class="result-actions">
+      <button id="downloadBtn" class="btn btn-primary" type="button">Download image</button>
+      <button id="editBtn" class="btn btn-outline" type="button">Edit meme</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const REF_WIDTH = 520;
+const EXPORT_WIDTH = 1200;
+const IMPACT_STACK = 'Impact, "Anton", Haettenschweiler, "Franklin Gothic Bold", sans-serif';
+
+const FONTS = [
+  { label: 'Impact (classic)', value: IMPACT_STACK },
+  { label: 'Anton', value: '"Anton", sans-serif' },
+  { label: 'Poppins', value: '"Poppins", sans-serif' },
+  { label: 'Inter', value: '"Inter", sans-serif' },
+  { label: 'Courier New', value: '"Courier New", monospace' },
+];
+
+function svgDataUrl(inner) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800">${inner}</svg>`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
+
+const TEMPLATES = [
+  {
+    name: 'Sunset',
+    url: svgDataUrl(`
+      <defs><linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#FF9A5A"/><stop offset="0.55" stop-color="#FF5C8A"/><stop offset="1" stop-color="#5B2A86"/>
+      </linearGradient></defs>
+      <rect width="800" height="800" fill="url(#g1)"/>
+      <circle cx="400" cy="430" r="140" fill="#FFD166" opacity="0.9"/>
+      <rect y="560" width="800" height="240" fill="#1c1030" opacity="0.55"/>
+    `),
+  },
+  {
+    name: 'Ocean',
+    url: svgDataUrl(`
+      <defs><linearGradient id="g2" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#0F5E77"/><stop offset="1" stop-color="#1FB3A3"/>
+      </linearGradient></defs>
+      <rect width="800" height="800" fill="url(#g2)"/>
+      <circle cx="150" cy="620" r="26" fill="#ffffff" opacity="0.35"/>
+      <circle cx="240" cy="700" r="14" fill="#ffffff" opacity="0.35"/>
+      <circle cx="620" cy="150" r="20" fill="#ffffff" opacity="0.3"/>
+    `),
+  },
+  {
+    name: 'Grid Paper',
+    url: svgDataUrl(`
+      <rect width="800" height="800" fill="#FAF7F0"/>
+      ${Array.from({ length: 17 })
+        .map((_, i) => `<line x1="${i * 50}" y1="0" x2="${i * 50}" y2="800" stroke="#E1D9C6" stroke-width="1"/>`)
+        .join('')}
+      ${Array.from({ length: 17 })
+        .map((_, i) => `<line x1="0" y1="${i * 50}" x2="800" y2="${i * 50}" stroke="#E1D9C6" stroke-width="1"/>`)
+        .join('')}
+    `),
+  },
+  {
+    name: 'Blank black',
+    url: svgDataUrl(`<rect width="800" height="800" fill="#111111"/>`),
+  },
+];
+
+let idCounter = 1;
+const nextId = () => `layer-${idCounter++}-${Date.now()}`;
+const clamp = (n, min, max) => Math.min(max, Math.max(min, n));
+
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function makeTextLayer(overrides = {}) {
+  return {
+    id: nextId(),
+    text: 'YOUR TEXT HERE',
+    x: 50,
+    y: 10,
+    fontSize: 42,
+    fontFamily: IMPACT_STACK,
+    color: '#ffffff',
+    align: 'center',
+    opacity: 1,
+    outlineColor: '#000000',
+    outlineWidth: 4,
+    ...overrides,
+  };
+}
+
+function defaultLayerPair() {
+  return [
+    makeTextLayer({ text: 'TOP TEXT', y: 8 }),
+    makeTextLayer({ text: 'BOTTOM TEXT', y: 90 }),
+  ];
+}
+
+let step = 'edit';
+let bgImage = null;
+let aspect = 1;
+let layers = [];
+let openId = null;
+let isWorking = false;
+let resultUrl = null;
+let drag = null;
+
+const stage = document.getElementById('stage');
+const stageBg = document.getElementById('stageBg');
+const placeholder = document.getElementById('placeholder');
+const templateStrip = document.getElementById('templateStrip');
+const textboxList = document.getElementById('textboxList');
+const generateBtn = document.getElementById('generateBtn');
+const editor = document.getElementById('editor');
+const result = document.getElementById('result');
+const resultImage = document.getElementById('resultImage');
+const downloadBtn = document.getElementById('downloadBtn');
+const editBtn = document.getElementById('editBtn');
+
+function updateLayer(id, patch) {
+  layers = layers.map(l => l.id === id ? { ...l, ...patch } : l);
+  render();
+}
+
+function deleteLayer(id) {
+  layers = layers.filter(l => l.id !== id);
+  if (openId === id) openId = null;
+  render();
+}
+
+async function applyBackground(src) {
+  const img = await loadImage(src);
+  aspect = img.naturalWidth / img.naturalHeight || 1;
+  bgImage = src;
+  if (layers.length === 0) layers = defaultLayerPair();
+  render();
+}
+
+async function handleUpload(file) {
+  if (!file) return;
+  const dataUrl = await readFileAsDataUrl(file);
+  await applyBackground(dataUrl);
+}
+
+function addTextBox() {
+  const layer = makeTextLayer({ text: 'NEW TEXT', y: 50 });
+  layers.push(layer);
+  openId = layer.id;
+  render();
+}
+
+function layerTransform(layer) {
+  const alignShift = { left: '0%', center: '-50%', right: '-100%' }[layer.align];
+  return `translate(${alignShift}, -50%)`;
+}
+
+function renderTemplates() {
+  templateStrip.innerHTML = '';
+
+  const uploadLabel = document.createElement('label');
+  uploadLabel.className = 'upload-chip';
+  uploadLabel.textContent = 'Upload new image';
+
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.hidden = true;
+  input.addEventListener('change', e => {
+    handleUpload(e.target.files?.[0]);
+    e.target.value = '';
+  });
+
+  uploadLabel.appendChild(input);
+  templateStrip.appendChild(uploadLabel);
+
+  TEMPLATES.forEach(t => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `template-thumb ${bgImage === t.url ? 'active' : ''}`;
+    button.style.backgroundImage = `url(${t.url})`;
+    button.title = t.name;
+    button.addEventListener('click', () => applyBackground(t.url));
+    templateStrip.appendChild(button);
+  });
+}
+
+function renderStage() {
+  stage.style.aspectRatio = aspect;
+  stage.style.maxWidth = `${REF_WIDTH}px`;
+
+  if (bgImage) {
+    stageBg.src = bgImage;
+    stageBg.hidden = false;
+    placeholder.hidden = true;
+  } else {
+    stageBg.hidden = true;
+    placeholder.hidden = false;
+  }
+
+  stage.querySelectorAll('.stage-layer').forEach(el => el.remove());
+
+  layers.forEach(layer => {
+    const el = document.createElement('div');
+    el.className = `stage-layer ${layer.id === openId ? 'selected' : ''}`;
+    Object.assign(el.style, {
+      left: `${layer.x}%`,
+      top: `${layer.y}%`,
+      transform: layerTransform(layer),
+      opacity: layer.opacity,
+      fontSize: `${layer.fontSize}px`,
+      color: layer.color,
+      fontFamily: layer.fontFamily,
+      textAlign: layer.align,
+      paintOrder: 'stroke fill',
+    });
+    if (layer.outlineWidth > 0) {
+      el.style.webkitTextStroke = `${layer.outlineWidth}px ${layer.outlineColor}`;
+    }
+    el.textContent = layer.text;
+    el.addEventListener('pointerdown', e => startDrag(e, layer.id));
+    el.addEventListener('pointermove', onDragMove);
+    el.addEventListener('pointerup', endDrag);
+    stage.appendChild(el);
+  });
+}
+
+function renderTextboxList() {
+  textboxList.innerHTML = '';
+
+  layers.forEach((layer, i) => {
+    const row = document.createElement('div');
+    row.className = 'textbox-row';
+
+    const header = document.createElement('button');
+    header.type = 'button';
+    header.className = 'textbox-header';
+
+    const title = document.createElement('span');
+    title.textContent = `Text box ${i + 1}: ${layer.text || '(empty)'}`;
+
+    const chevron = document.createElement('span');
+    chevron.className = 'chevron';
+    chevron.textContent = openId === layer.id ? '▲' : '▼';
+
+    header.append(title, chevron);
+    header.addEventListener('click', () => {
+      openId = openId === layer.id ? null : layer.id;
+      render();
+    });
+    row.appendChild(header);
+
+    if (openId === layer.id) {
+      const body = document.createElement('div');
+      body.className = 'textbox-body';
+
+      const textLabel = document.createElement('label');
+      textLabel.textContent = 'Text';
+      const textarea = document.createElement('textarea');
+      textarea.rows = 2;
+      textarea.value = layer.text;
+      textarea.addEventListener('input', e => updateLayer(layer.id, { text: e.target.value }));
+      textLabel.appendChild(textarea);
+      body.appendChild(textLabel);
+
+      const fontLabel = document.createElement('label');
+      fontLabel.textContent = 'Font';
+      const select = document.createElement('select');
+      FONTS.forEach(f => {
+        const option = document.createElement('option');
+        option.value = f.value;
+        option.textContent = f.label;
+        option.selected = layer.fontFamily === f.value;
+        select.appendChild(option);
+      });
+      select.addEventListener('change', e => updateLayer(layer.id, { fontFamily: e.target.value }));
+      fontLabel.appendChild(select);
+      body.appendChild(fontLabel);
+
+      const grid = document.createElement('div');
+      grid.className = 'field-grid';
+
+      function addRange(labelText, min, max, stepValue, value, onInput) {
+        const label = document.createElement('label');
+        label.textContent = labelText;
+        const range = document.createElement('input');
+        range.type = 'range';
+        range.min = min;
+        range.max = max;
+        range.step = stepValue;
+        range.value = value;
+        range.addEventListener('input', e => onInput(Number(e.target.value)));
+        label.appendChild(range);
+        grid.appendChild(label);
+      }
+
+      const alignLabel = document.createElement('label');
+      alignLabel.textContent = 'Alignment';
+      const segmented = document.createElement('div');
+      segmented.className = 'segmented';
+      ['left', 'center', 'right'].forEach(a => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = a;
+        b.className = layer.align === a ? 'active' : '';
+        b.addEventListener('click', () => updateLayer(layer.id, { align: a }));
+        segmented.appendChild(b);
+      });
+      alignLabel.appendChild(segmented);
+      grid.appendChild(alignLabel);
+
+      addRange(`Size (${layer.fontSize}px)`, 14, 96, 1, layer.fontSize,
+        v => updateLayer(layer.id, { fontSize: v }));
+      addRange(`Opacity (${Math.round(layer.opacity * 100)}%)`, 0.1, 1, 0.05, layer.opacity,
+        v => updateLayer(layer.id, { opacity: v }));
+      addRange(`Outline width (${layer.outlineWidth}px)`, 0, 8, 1, layer.outlineWidth,
+        v => updateLayer(layer.id, { outlineWidth: v }));
+
+      body.appendChild(grid);
+
+      const colorRow = document.createElement('div');
+      colorRow.className = 'color-row';
+
+      function addColor(labelText, value, onChange) {
+        const label = document.createElement('label');
+        label.textContent = labelText;
+        const input = document.createElement('input');
+        input.type = 'color';
+        input.value = value;
+        input.addEventListener('input', e => onChange(e.target.value));
+        label.appendChild(input);
+        colorRow.appendChild(label);
+      }
+
+      addColor('Text color', layer.color, v => updateLayer(layer.id, { color: v }));
+      addColor('Outline color', layer.outlineColor, v => updateLayer(layer.id, { outlineColor: v }));
+      body.appendChild(colorRow);
+
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'btn btn-danger';
+      del.textContent = 'Delete this text box';
+      del.addEventListener('click', () => deleteLayer(layer.id));
+      body.appendChild(del);
+
+      row.appendChild(body);
+    }
+
+    textboxList.appendChild(row);
+  });
+
+  const add = document.createElement('button');
+  add.type = 'button';
+  add.className = 'btn btn-outline btn-block';
+  add.textContent = '+ Add Text Box';
+  add.addEventListener('click', addTextBox);
+  textboxList.appendChild(add);
+}
+
+function render() {
+  renderTemplates();
+  renderStage();
+  renderTextboxList();
+  generateBtn.textContent = isWorking ? 'Generating…' : 'Generate Meme';
+  generateBtn.disabled = isWorking;
+}
+
+function startDrag(e, id) {
+  e.stopPropagation();
+  openId = id;
+  const layer = layers.find(l => l.id === id);
+  const rect = stage.getBoundingClientRect();
+  const anchorX = rect.left + (layer.x / 100) * rect.width;
+  const anchorY = rect.top + (layer.y / 100) * rect.height;
+  drag = {
+    id,
+    offsetX: e.clientX - anchorX,
+    offsetY: e.clientY - anchorY,
+    rect
+  };
+  e.target.setPointerCapture?.(e.pointerId);
+  renderStage();
+}
+
+function onDragMove(e) {
+  if (!drag) return;
+  const xPct = clamp(((e.clientX - drag.rect.left - drag.offsetX) / drag.rect.width) * 100, 0, 100);
+  const yPct = clamp(((e.clientY - drag.rect.top - drag.offsetY) / drag.rect.height) * 100, 0, 100);
+  layers = layers.map(l => l.id === drag.id ? { ...l, x: xPct, y: yPct } : l);
+  renderStage();
+}
+
+function endDrag() {
+  drag = null;
+}
+
+stage.addEventListener('click', () => {
+  openId = null;
+  renderTextboxList();
+  renderStage();
+});
+
+generateBtn.addEventListener('click', handleGenerate);
+
+async function renderToCanvas() {
+  if (document.fonts?.ready) await document.fonts.ready;
+
+  const width = EXPORT_WIDTH;
+  const height = Math.round(EXPORT_WIDTH / aspect);
+  const scale = EXPORT_WIDTH / REF_WIDTH;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+
+  const ctx = canvas.getContext('2d');
+  const img = await loadImage(bgImage);
+  ctx.drawImage(img, 0, 0, width, height);
+
+  layers.forEach(layer => {
+    const x = (layer.x / 100) * width;
+    const y = (layer.y / 100) * height;
+    const fontSize = layer.fontSize * scale;
+
+    ctx.save();
+    ctx.globalAlpha = layer.opacity;
+    ctx.font = `700 ${fontSize}px ${layer.fontFamily}`;
+    ctx.textAlign = layer.align;
+    ctx.textBaseline = 'middle';
+
+    const text = layer.text.toUpperCase();
+
+    if (layer.outlineWidth > 0) {
+      ctx.lineJoin = 'round';
+      ctx.miterLimit = 2;
+      ctx.lineWidth = layer.outlineWidth * scale * 2;
+      ctx.strokeStyle = layer.outlineColor;
+      ctx.strokeText(text, x, y);
+    }
+
+    ctx.fillStyle = layer.color;
+    ctx.fillText(text, x, y);
+    ctx.restore();
+  });
+
+  return canvas;
+}
+
+async function handleGenerate() {
+  if (!bgImage) {
+    alert('Pick a template or upload an image first.');
+    return;
+  }
+
+  isWorking = true;
+  render();
+
+  try {
+    const canvas = await renderToCanvas();
+    resultUrl = canvas.toDataURL('image/png');
+    resultImage.src = resultUrl;
+    step = 'result';
+    editor.hidden = true;
+    result.hidden = false;
+  } finally {
+    isWorking = false;
+  }
+}
+
+downloadBtn.addEventListener('click', () => {
+  if (!resultUrl) return;
+  const a = document.createElement('a');
+  a.href = resultUrl;
+  a.download = 'meme.png';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+});
+
+editBtn.addEventListener('click', () => {
+  step = 'edit';
+  editor.hidden = false;
+  result.hidden = true;
+});
+
+render();
+</script>
+</body>
+</html>
